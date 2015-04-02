@@ -307,10 +307,22 @@ sub BackupFullExpire
     return @delete;
 }
 
+#
+# Removes a specific backup
+#
 sub BackupRemove {
-    ::BackupRemove( \@Backups, @_ );
-    return 0;
-    #return ($Errors ? 1 : 0);
+    my ( $client, $idx ) = @_;
+
+    if ( $Backups[$idx]{startTime} eq "" ) {
+        print "BackupRemove: ignoring empty backup start time for idx $idx.",
+          "\n";
+        return;
+    }
+
+    ::BackupRemove( $Backups[$idx]{num} );
+
+    delete $BackupList{$client}{ $Backups[$idx]{startTime} };
+    splice( @Backups, $idx, 1 );
 }
 
 1;
