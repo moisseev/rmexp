@@ -319,10 +319,11 @@ sub BackupRemove {
         return;
     }
 
-    ::BackupRemove( $Backups[$idx]{num} );
+    my $ret = ::BackupRemove( $Backups[$idx]{num} );
 
     delete $BackupList{$client}{ $Backups[$idx]{startTime} };
     splice( @Backups, $idx, 1 );
+    return $ret;
 }
 
 1;
