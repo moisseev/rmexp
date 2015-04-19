@@ -319,7 +319,8 @@ sub BackupRemove {
         return;
     }
 
-    my $ret = ::BackupRemove( $Backups[$idx]{num} );
+    my $ret =
+      ::BackupRemove( $Backups[$idx]{num}, $client, $Backups[$idx]{startTime} );
 
     delete $BackupList{$client}{ $Backups[$idx]{startTime} };
     splice( @Backups, $idx, 1 );
