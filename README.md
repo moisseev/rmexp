@@ -1,2 +1,2 @@
 # rmexp
-a perl script for automatic removal of old backups
+a Perl script set for automatic removal of old backups
