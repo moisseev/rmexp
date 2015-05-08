@@ -255,6 +255,8 @@ sub BackupFullExpire
 
     $fullKeepCnt = [$fullKeepCnt] if ( ref($fullKeepCnt) ne "ARRAY" );
     my $startTimeDeviation = $fullPeriod < 1 ? $fullPeriod / 2 : 0.5;
+    my $keepPeriod =
+      ( $fullPeriod + $startTimeDeviation ) * $fullKeepCnt->[0] * 24 * 3600;
 
     for ( my $i = 0 ; $i < @$Backups ; $i++ ) {
         if ( $Backups[$i]{preV4} ) {
@@ -277,6 +279,7 @@ sub BackupFullExpire
         if ( !$noDelete && 
               ($fullKeepIdx >= @$fullKeepCnt
               || $k > 0
+                 && $fullKeepIdx > 0
                  && defined($nextFull)
                  && $Backups->[$nextFull]{startTime} - $Backups->[$prevFull]{startTime}
                              < ($fullPeriod + $startTimeDeviation) * 24 * 3600
@@ -291,6 +294,7 @@ sub BackupFullExpire
             $fullCnt++;
             $nextFull = $i;
             while ( $fullKeepIdx < @$fullKeepCnt
+                     && time - $Backups->[$i]{startTime} > $keepPeriod
                      && $fullCnt >= $fullKeepCnt->[$fullKeepIdx] ) {
                 $fullKeepIdx++;
                 $fullCnt = 0;
