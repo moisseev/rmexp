@@ -235,7 +235,6 @@ sub BackupFullExpire
     my($client, $Backups) = @_;
     my $fullCnt = 0;
     my $fullPeriod = $Conf{FillCycle} <= 0 ? $Conf{FullPeriod} : $Conf{FillCycle};
-    my $startTimeDeviation = $fullPeriod < 1 ? $fullPeriod / 2 : 0.5;
     my $nextFull;
     my $fullKeepCnt = $Conf{FullKeepCnt};
     my $fullKeepIdx = 0;
@@ -255,6 +254,7 @@ sub BackupFullExpire
     $fullPeriod = 1 if ( $fullPeriod <= 0 );
 
     $fullKeepCnt = [$fullKeepCnt] if ( ref($fullKeepCnt) ne "ARRAY" );
+    my $startTimeDeviation = $fullPeriod < 1 ? $fullPeriod / 2 : 0.5;
 
     for ( my $i = 0 ; $i < @$Backups ; $i++ ) {
         if ( $Backups[$i]{preV4} ) {
