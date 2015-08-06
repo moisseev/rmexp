@@ -1,0 +1,237 @@
+#!/usr/local/bin/perl -w
+
+#============================================================= -*-perl-*-
+# rmexp-smb
+#========================================================================
+# Version 0.0.7, released 2015-06-03
+#========================================================================
+
+use strict;
+use Time::Local;
+use POSIX;
+use Getopt::Long;
+use Pod::Usage;
+use Filesys::SmbClient;
+
+use lib::Lib;
+use lib::Rmexp;
+
+#use constant {
+#    LOG_FILE	=> '/tmp/1s8_expire.log',	# The name of the logfile
+#};
+#use constant TTY_STDOUT => -t STDOUT;   # is STDOUT connected to tty?
+#use constant TTY_STDOUT => 0;
+our ( $opt_a, $opt_c, $opt_l, $opt_n, $opt_s, $opt_help, $opt_man );
+
+GetOptions( "a", "d", "c=s", "l", "n", "s", "help|?", "man" ) || pod2usage(2);
+pod2usage( -input => "rmexp.pod", -exitval => 0, -verbose => 2 ) if $opt_man;
+pod2usage( -input => "rmexp.pod", -exitval => 1 ) if ( $opt_help || !$opt_c );
+#pod2usage(1) if ( $opt_help || !$opt_c );
+
+&ConfigDataRead($opt_c);
+
+my $smb = Filesys::SmbClient->new(
+    username => $Conf{SmbShareUserName},
+    password => $Conf{SmbSharePasswd},
+);
+
+my $maxDepth = $Conf{maxDepth} || 255;
+
+&getBackupList( "//$Conf{SmbHostName}/$Conf{SmbShareName}/$Conf{SmbDir}", 0 );
+
+unless ($opt_l) {
+    print "------ Debug ------", "\n", "Performed actions:", "\n" if $opt_d;
+    map { &BackupExpire($_) } keys %BackupList;
+    print "-------------------", "\n\n" if $opt_d;
+}
+
+&ShowReport();
+
+exit(0);
+
+sub getBackupList {
+    my ( $uncDir, $currDepth ) = @_;
+
+    my $fd = $smb->opendir("smb:$uncDir")
+      or die "Can't open directory $uncDir: ", $!, "\n";
+    # change die to return
+
+    while ( my $dirStruct = $smb->readdir_struct($fd) ) {
+        my $type = $dirStruct->[0];
+        my $name = $dirStruct->[1];
+
+        if ( $type == SMBC_DIR ) {
+            next if $name =~ /^[.]{1,2}$/;
+            die "*FATAL* Excedeed max directory depth of $maxDepth", "\n"
+              if ( $currDepth >= $maxDepth );
+            &getBackupList( "$uncDir/$name", $currDepth + 1 );
+        }
+
+        next if ( $type != SMBC_FILE );
+        next unless $name =~ /^.+$Conf{fileNameSuffix}$/;
+
+        my $uncFile = "$uncDir/$name";
+        if ( $name =~ /^$Conf{fileNameRE}$Conf{fileNameSuffix}$/ ) {
+            my $fileSize = ( $smb->stat("smb:$uncFile") )[7]
+              or warn "*ERROR* Can't access file $uncFile: ", $!, "\n";
+
+            # Time::Local : months start at 0, years have 1900 subtracted
+            my $startTime = timelocal( $7, $6, $5, $4, $3 - 1, $2 - 1900 );
+
+            if ( $BackupList{$1}{$startTime} ) {
+                die <<EOF
+*FATAL* Duplicate backups:
+$BackupList{$1}{$startTime}{dir}/$BackupList{$1}{$startTime}{fileName}
+$uncFile
+EOF
+            }
+
+            $BackupList{$1}{$startTime} = {
+                fileName => $name,
+                fileSize => $fileSize,
+                level    => $8 ? $8 : 0,
+                dir      => $uncDir,
+            };
+        }
+        else {
+            warn "*WARNING* unknown date/time format in file name: $uncFile\n";
+        }
+    }
+    $smb->closedir($fd);
+}
+
+#
+# Print report
+#
+sub ShowReport {
+
+    unless (%BackupList) {
+        print POSIX::strftime ( '%Y-%m-%d %H:%M', localtime(time) ), "\n\n";
+        print "*WARNING* No backups found!\n";
+        return;
+    }
+
+    my ( $lastStartTime, @Report );
+    my $maxPrefixWidth = my $warnOutdated = 0;
+
+    map {
+        my @StartTimes;
+        my $name = $_;
+
+        $maxPrefixWidth = length if ( length > $maxPrefixWidth );
+
+        if ($opt_a) {
+            @StartTimes = ( sort keys %{ $BackupList{$_} } );
+        }
+        else {
+            # [-1] implies the most recent backup for each host.
+            @StartTimes = ( ( sort keys %{ $BackupList{$_} } )[-1] );
+        }
+
+        for (@StartTimes) {
+            my $startTime = $_;
+            $lastStartTime = $startTime;
+
+            push @Report,
+              [
+                $name,
+                $BackupList{$name}{$startTime}->{level},
+                $BackupList{$name}{$startTime}->{fileSize} / 1024**2,
+                POSIX::strftime( '%Y-%m-%d %H:%M', localtime($startTime) ),
+                floor( ( time - $startTime ) / ( 24 * 3600 ) )
+              ];
+        }
+        unless (
+            ( time - $lastStartTime ) / (
+                24 * 3600 * (
+                      $Conf{IncrPeriod} > 0
+                    ? $Conf{IncrPeriod}
+                    : $Conf{FullPeriod}
+                )
+            ) < 1
+          )
+        {
+            $warnOutdated = 1;
+        }
+
+    } sort keys %BackupList;
+
+    !$opt_s || $warnOutdated || return;
+
+    # Print report header and table header
+
+    print POSIX::strftime ( '%Y-%m-%d %H:%M', localtime(time) ), "\n\n";
+    print "Number of hosts: ", scalar( keys %BackupList ), "\n", "\n";
+
+    print "*WARNING* Some backups are outdated!", "\n\n" if $warnOutdated;
+
+    printf "%-${maxPrefixWidth}s | %5s | %9s | %-16s | %8s\n",
+      "Hostname", "Level", "Size (MB)", "Last available", "Days old";
+
+    my $i = $maxPrefixWidth + 50;
+    while ( $i-- ) { print "-" }
+    print "\n";
+
+    # Print rest of the table
+    my $reportRow;
+    for $reportRow (@Report) {
+        printf "%-${maxPrefixWidth}s | %5s | %9.2f | %16s | %8s\n", @$reportRow;
+    }
+}
+
+sub BackupRemove {
+    SmbFileRemove(@_);
+}
+
+sub SmbFileRemove {
+    my ( $fileName, $client, $startTime ) = @_;
+    my $ret;
+    my $uncFile = "$BackupList{$client}{$startTime}{dir}/$fileName";
+    if ($opt_n) {
+        $ret = $smb->stat("smb:$uncFile")
+          or warn "Can't access file $uncFile: ", $!, "\n";
+    }
+    else {
+        $ret = $smb->unlink("smb:$uncFile")
+          or warn "Can't unlink file $uncFile: ", $!, "\n";
+    }
+    return $ret ? 0 : 1;
+}
+
+#sub log_it {
+#print @_, "\n";
+#  if (TTY_STDOUT) {     # write to STDOUT if tty connected
+#    print @_, "\n";
+#  } else {
+##    openlog('rmexp', 'pid', 'user');
+##    syslog('info', @_);
+##    closelog();
+#
+#    open LOG, '>>', LOG_FILE;
+#    print LOG scalar(localtime), ' ', @_, "\n";
+#    close LOG || die $!;
+#  }
+#}
+
+__END__
+
+
+=head1 SYNOPSIS
+
+B<rmexp-smb [-a] [-d] [-n] [-s] -c> U<configfile>
+
+B<rmexp-smb -l [-s] -c> U<configfile>
+
+B<rmexp-smb -help|-?|-man>
+
+ Options:
+       -a               include all available backups in the report
+       -d               print performed actions
+       -c               configuration file name
+       -l               list backups and exit
+       -n               dry run
+       -s               supress report if no warnings
+       -help -?         brief help message
+       -man             full documentation
+
+=cut

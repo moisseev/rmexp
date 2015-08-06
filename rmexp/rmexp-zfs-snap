@@ -1,0 +1,277 @@
+#!/usr/local/bin/perl -w
+
+#============================================================= -*-perl-*-
+# rmexp-zfs-snap
+#========================================================================
+# Version 0.0.1, released 2015-06-03
+#========================================================================
+
+use strict;
+use Time::Local;
+use POSIX;
+use Getopt::Long;
+use Pod::Usage;
+
+use lib::Lib;
+use lib::Rmexp;
+
+#use constant {
+#    LOG_FILE	=> '/tmp/1s8_expire.log',	# The name of the logfile
+#};
+#use constant TTY_STDOUT => -t STDOUT;   # is STDOUT connected to tty?
+#use constant TTY_STDOUT => 0;
+
+our ( $opt_a, $opt_c, $opt_l, $opt_n, $opt_s, $opt_help, $opt_man );
+
+GetOptions( "a", "d", "c=s", "l", "n", "s", "help|?", "man" ) || pod2usage(2);
+pod2usage( -input => "rmexp.pod", -exitval => 0, -verbose => 2 ) if $opt_man;
+pod2usage(1) if ( $opt_help || !$opt_c );
+
+&ConfigDataRead($opt_c);
+
+-x "/sbin/zfs"
+  or die '/sbin/zfs is not a valid executable.';
+
+my $zfsWritten = zfsWrittenChk();
+
+#&getSnapshotList();
+
+if ( $opt_l || ( $zfsWritten != 1 ) ) {
+    &getSnapshotList();
+}
+else {
+    print "------ Debug ------", "\n", "Performed actions:", "\n" if $opt_d;
+    &SnapshotCreate();
+    &getSnapshotList();
+    map { &BackupExpire($_) } keys %BackupList;
+    print "-------------------\n\n" if $opt_d;
+}
+
+&ShowReport();
+
+exit(0)
+  if $opt_s;
+
+print "\n";
+system("/sbin/zfs get -o name,property,value used,logicalused $Conf{zfsFS}");
+
+exit(0);
+
+sub getSnapshotList {
+
+    my $smbcl_ls_re = qr/^(\S+@\S+)\s+(\d+)\s+(\d+)\s+(\d+)$/;
+
+    local (*ZFSLIST);
+
+    unless (
+        defined(
+            open( ZFSLIST,
+                "-|",
+                "/sbin/zfs list"
+                  . " -rpH -o name,lrefer,written,used -t snapshot"
+                  . "  $Conf{zfsFS}"
+            )
+        )
+      )
+    {
+        print STDERR "Can't fork to run 'zfs list' with piped STDOUT.", "\n";
+        return;
+    }
+
+    my ( $fileName, $fileSize, $startTime, $zfsSnapshotWritten,
+        $zfsSnapshotUsed );
+    while (<ZFSLIST>) {
+
+        unless (/$smbcl_ls_re/) {
+            print "*WARNING* Unexpected 'zfs list' output!", "\n\n";
+            next;
+        }
+        $fileName           = $1;
+        $fileSize           = $2;
+        $zfsSnapshotWritten = $3;
+        $zfsSnapshotUsed    = $4;
+        if (
+            $1 =~ /^(.+)[_@]
+            (\d{4})-(\d{1,2})-(\d{1,2})_(\d{1,2})[-.](\d{1,2})[-.](\d{1,2})
+            (?:\.(\d))?
+            $Conf{fileNameSuffix}$/x
+          )
+        {
+            # Time::Local : months start at 0, years have 1900 subtracted
+            $startTime = timelocal( $7, $6, $5, $4, $3 - 1, $2 - 1900 );
+            $BackupList{$1}{$startTime} = {
+                fileName => $fileName,
+                fileSize => $fileSize,
+                level    => $8 ? $8 : 0,
+                written  => $zfsSnapshotWritten,
+                used     => $zfsSnapshotUsed
+            };
+
+        }
+        else {
+            print "Invalid date/time format in dump name $fileName.", "\n";
+        }
+    }
+    close ZFSLIST;
+}
+
+#
+# Print report
+#
+sub ShowReport {
+
+    unless (%BackupList) {
+        print POSIX::strftime ( '%Y-%m-%d %H:%M', localtime(time) ), "\n\n";
+        print "*WARNING* No backups found!\n";
+        return;
+    }
+
+    my ( $lastStartTime, @Report );
+    my $maxPrefixWidth = my $warnOutdated = 0;
+
+    map {
+        my @StartTimes;
+        my $name = $_;
+
+        $maxPrefixWidth = length if ( length > $maxPrefixWidth );
+
+        if ($opt_a) {
+            @StartTimes = ( sort keys %{ $BackupList{$_} } );
+        }
+        else {
+            # [-1] implies the most recent backup for each host.
+            @StartTimes = ( ( sort keys %{ $BackupList{$_} } )[-1] );
+        }
+
+        for (@StartTimes) {
+            my $startTime = $_;
+            $lastStartTime = $startTime;
+
+            push @Report,
+              [
+                $name,
+                $BackupList{$name}{$startTime}->{level},
+                $BackupList{$name}{$startTime}->{fileSize} / 1024**2,
+                $BackupList{$name}{$startTime}->{written} / 1024**2,
+                $BackupList{$name}{$startTime}->{used} / 1024**2,
+                POSIX::strftime( '%Y-%m-%d %H:%M', localtime($startTime) ),
+                floor( ( time - $startTime ) / ( 24 * 3600 ) )
+              ];
+        }
+        unless (
+            ( time - $lastStartTime ) / (
+                24 * 3600 * (
+                      $Conf{IncrPeriod} > 0
+                    ? $Conf{IncrPeriod}
+                    : $Conf{FullPeriod}
+                )
+            ) < 1
+          )
+        {
+            $warnOutdated = 1;
+        }
+
+        push @Report,
+          [
+            $name,
+            "-",
+            `/sbin/zfs get -Hp -o value lrefer $Conf{zfsFS}` / 1024**2,
+            `/sbin/zfs get -Hp -o value written $Conf{zfsFS}` / 1024**2,
+            `/sbin/zfs get -Hp -o value usedds $Conf{zfsFS}` / 1024**2,
+            "-",
+            "-"
+          ];
+
+    } sort keys %BackupList;
+
+    !$opt_s || $warnOutdated || return;
+
+    # Print report header and table header
+
+    print POSIX::strftime ( '%Y-%m-%d %H:%M', localtime(time) ), "\n\n";
+    print "Number of hosts: ", scalar( keys %BackupList ), "\n", "\n";
+
+    print "*WARNING* Some backups are outdated!", "\n\n" if $warnOutdated;
+
+    printf "%-${maxPrefixWidth}s | %5s | %9s | %12s | %9s | %-16s | %8s\n",
+      "Hostname", "Level", "Size (MB)", "Written (MB)", "Used (MB)",
+      "Last available", "Days old";
+
+    my $i = $maxPrefixWidth + 77;
+    while ( $i-- ) { print "-" }
+    print "\n";
+
+    # Print rest of table
+    my $reportRow;
+    for $reportRow (@Report) {
+        printf
+          "%-${maxPrefixWidth}s | %5s | %9.2f | %12.2f | %9.2f | %16s | %8s\n",
+          @$reportRow;
+    }
+}
+
+sub BackupRemove {
+    SnapshotDestroy(@_);
+}
+
+#
+# Removes a specific snapshot
+#
+sub SnapshotDestroy {
+    my $name = shift;
+    my $dryRun = $opt_n ? ' -n ' : ' ';
+    system( "/sbin/zfs destroy" . "$dryRun" . "$name" );
+}
+
+sub zfsWrittenChk {
+    return 1
+      if ( `/sbin/zfs get -Hp -o value written $Conf{zfsFS}` >= 10485760 );
+
+    print "*WARNING* Less than 10M was written to $Conf{zfsFS}\
+since previous snapshot.", "\n\n";
+    return 0;
+}
+
+sub SnapshotCreate {
+    my $timeStamp = POSIX::strftime( '%Y-%m-%d_%H.%M.%S', localtime(time) );
+    print "+++ snapshot   $Conf{zfsFS}\@$timeStamp", "\n" if $opt_d;
+    system("/sbin/zfs snapshot $Conf{zfsFS}\@$timeStamp") if !$opt_n;
+}
+
+#sub log_it {
+#print @_, "\n";
+#  if (TTY_STDOUT) {     # write to STDOUT if tty connected
+#    print @_, "\n";
+#  } else {
+##    openlog('rmexp', 'pid', 'user');
+##    syslog('info', @_);
+##    closelog();
+#
+#    open LOG, '>>', LOG_FILE;
+#    print LOG scalar(localtime), ' ', @_, "\n";
+#    close LOG || die $!;
+#  }
+#}
+
+__END__
+
+
+=head1 SYNOPSIS
+
+B<rmexp-zfs-snap [-a] [-d] [-n] [-s] -c> U<configfile>
+
+B<rmexp-zfs-snap -l [-s] -c> U<configfile>
+
+B<rmexp-zfs-snap -help|-?|-man>
+
+ Options:
+       -a               include all available backups in the report
+       -d               print performed actions
+       -c               configuration file name
+       -l               list backups and exit
+       -n               dry run
+       -s               supress report if no warnings
+       -help -?         brief help message
+       -man             full documentation
+
+=cut
