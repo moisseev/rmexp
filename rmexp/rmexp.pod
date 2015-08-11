@@ -1,0 +1,288 @@
+=head1 NAME
+
+rmexp - a Perl script set for automatic removal of expired backups
+
+=over 4
+
+=item *
+
+B<rmexp-smb> removes backups located at SMB shares
+
+=item *
+
+B<rmexp-zfs-snap> removes backups stored as ZFS snapshots
+
+=back
+
+=head1 SYNOPSIS
+
+B<rmexp-smb|rmexp-zfs-snap [-a] [-d] [-n] [-s] -c> F<configfile>
+
+B<rmexp-smb|rmexp-zfs-snap -l [-s] -c> F<configfile>
+
+B<rmexp-smb|rmexp-zfs-snap -help|-?|-man>
+
+ Options:
+       -a               include all available backups in the report
+       -d               print performed actions
+       -c               configuration file name
+       -l               list backups and exit
+       -n               dry run
+       -s               suppress report if no warnings
+       -help -?         brief help message
+       -man             full documentation
+
+=head1 DESCRIPTION
+
+=head2 Overview
+
+Rmexp is a Perl script set for automatic removal of expired backups.
+Rmexp uses a BackupPC-like expiration algorithm.
+
+Rmexp can be configured to keep a certain number of backups.
+Exponential expiry is also supported, allowing
+backups with various vintages to be kept (for example, a
+settable number of most recent weekly backups, plus a settable
+number of older backups that are 2, 4, 8, or 16 weeks apart).
+
+=head2 Features:
+
+=over 4
+
+=item *
+
+The standard smb protocol could be used to access backup data.
+
+=item *
+
+Prints on STDOUT action report and current state of the backup directory.
+If some backups are outdated warning message will be prepended to the report.
+
+=back
+
+=cut
+
+=head1 CONFIGURATION
+
+=head2 Backup file/snapshot name syntax and parsing
+
+{prefix}_YYYY-mm-dd_HH-MM-SS[.level]{suffix}
+
+e.g.
+      mydump_2010-02-10_16-48-23.dump.gz
+
+or
+      mydump_2010-02-10_16-48-23.0.dump.gz
+
+Prefix is arbitrary, but rmexp uses it for backups grouping.
+Rmexp process backups separately for each prefix.
+
+"Level" is a level of this backup. A full backup has level 0. Incrementals are 1.
+Multi-level incrementals are not supported, so this is just a 0 or 1.
+Level is optional for full backups.
+
+=over 4
+
+=item $Conf{fileNameSuffix}
+
+is a PCRE without anchors. Suffix part of the file/snapshot name should match
+$Conf{fileNameSuffix}.
+
+Example:
+    '\.dump\.gz'.
+
+Rmexp assumes all files/snapshots with suffix that matches $Conf{fileNameSuffix}
+should have name syntax matches $Conf{fileNameRE}. If file/snapshot name matches
+$Conf{fileNameSuffix} but does not match $Conf{fileNameRE} then rmexp ignores
+that file and throws warning.
+Rmexp ignores backup names with other suffixes (e.g. logs, descriptions or
+so on) silently.
+
+=item $Conf{fileNameRE}
+
+is a PCRE without anchors for parsing file/snapshot name.
+It should have capturing parenthesises:
+
+    $1  prefix
+    $2  YYYY
+    $3  mm
+    $4  dd
+    $5  HH
+    $6  MM
+    $7  SS
+    $8  level
+
+Example:
+    qr/^(.+)_
+      (\d{4})-(\d{1,2})-(\d{1,2})_(\d{1,2})-(\d{1,2})-(\d{1,2})
+      (?:\.(\d))?/x,
+
+=back
+
+=head2 ZFS specific settings
+
+=over 4
+
+=item $Conf{zfsFS}
+
+ZFS file system that should be processed.
+
+=back
+
+=head2 SMB specific settings
+
+=over 4
+
+=item $Conf{SmbShareUserName}
+
+=item $Conf{SmbSharePasswd}
+
+Username and password to access SMB share.
+
+=item $Conf{SmbHostName}
+
+Name or IP address of the SMB server.
+
+=item $Conf{SmbShareName}
+
+Name of the SMB share.
+
+=item $Conf{SmbDir}
+
+Path (excluding share name) to the backups directory.
+
+=item $Conf{maxDepth}
+
+Default is 255.
+
+Rmexp recursively searches all directories below $Conf{SmbDir}.
+If directory depth exceeds this limit rmexp dies with fatal error.
+
+=back
+
+=head2 What to remove and when to do it
+
+Rmexp uses BackupPC code for backups aging. For detailed algorithm and options
+description refer to "What to backup and when to do it" section of the BackupPC
+4.0.0 documentation. L<http://backuppc.sourceforge.net>
+
+=over 4
+
+=item $Conf{FullPeriod} = 1;
+
+Minimum period in days between backups.
+
+=item $Conf{IncrPeriod} = 1;
+
+Minimum period in days between incremental backups. Not affects backups aging.
+If the last backup is older than $Conf{IncrPeriod} then outdated backup warning
+will be added to statistics output. If $Conf{IncrPeriod} is set below or equal
+to 0, then $Conf{FullPeriod} will be used instead.
+
+=item $Conf{FillCycle} = 0;
+
+=item $Conf{FullKeepCnt} = 1;
+
+Number of backups to keep. Must be >= 1.
+
+Exponential expiry is specified using an array for $Conf{FullKeepCnt}:
+
+  $Conf{FullKeepCnt} = [4, 2, 3];
+
+=item $Conf{FullKeepCntMin} = 1;
+
+=item $Conf{FullAgeMax} = 90;
+
+Very old backups are removed after $Conf{FullAgeMax} days.  However,
+we keep at least $Conf{FullKeepCntMin} backups no matter how old
+they are.
+
+=item $Conf{IncrKeepCnt} = 6;
+
+Number of incremental backups to keep.  Must be >= 1.
+
+=item $Conf{IncrKeepCntMin} = 1;
+
+=item $Conf{IncrAgeMax} = 30;
+
+Very old incremental backups are removed after $Conf{IncrAgeMax} days.
+However, we keep at least $Conf{IncrKeepCntMin} incremental backups no
+matter how old they are.
+
+=back
+
+=cut
+
+=head1 REQUIREMENTS
+
+=over 4
+
+=item *
+
+A Linux, Solaris, or Unix based server.
+
+=item *
+
+Perl version 5.8.0 or later.  If you don't have perl, please
+see L<http://www.cpan.org>.
+
+=item *
+
+Filesys::SmbClient Perl module for access SMB shares.
+
+=back
+
+=head1 INSTALLATION
+
+=over
+
+=item 1
+
+Place rmexp directory where you want.
+
+=item 2
+
+Edit values in configuration file to match your needs.
+
+=item 3
+
+Add entries to crontab.
+
+=back
+
+=head1 EXAMPLES
+
+Crontab entries example:
+
+45  7  *  *  2-5  /somedir/rmexp.pl -s -c /somedir/rmexp.conf | mail -Es "rmexp@`hostname` `date '+\%Y-\%m-\%d \%H:\%M'` backup warning" mbox@domain.tld
+
+45  7  *  *  6  /somedir/rmexp.pl -c /somedir/rmexp.conf | mail -s "rmexp@`hostname` `date '+\%Y-\%m-\%d \%H:\%M'` weekly report" mbox@domain.tld
+
+=head1 AUTHOR
+
+S<Alexander Moisseev E<lt>moiseev@mezonplus.ruE<gt>>
+
+=head1 USED / MODIFIED SOURCE CODE
+
+Subroutines from BackupPC_dump by Craig Barratt <cbarratt@users.sourceforge.net>
+
+=head1 LICENSE and COPYRIGHT
+
+ Copyright (C) 2011-2015 Alexander Moisseev
+ All rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License in the
+LICENSE file along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
+
+=cut
