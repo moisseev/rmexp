@@ -21,9 +21,11 @@ use lib::Rmexp;
 #use constant TTY_STDOUT => -t STDOUT;   # is STDOUT connected to tty?
 #use constant TTY_STDOUT => 0;
 
-our ( $opt_a, $opt_c, $opt_l, $opt_n, $opt_s, $opt_help, $opt_man );
+our ( $opt_a, $opt_c, $opt_l, $opt_n, $opt_s, $opt_help, $opt_man,
+    $opt_ignore_written );
 
-GetOptions( "a", "d", "c=s", "l", "n", "s", "help|?", "man" ) || pod2usage(2);
+GetOptions( "a", "d", "c=s", "l", "n", "s", "help|?", "man", "ignore_written" )
+  || pod2usage(2);
 pod2usage( -input => "rmexp.pod", -exitval => 0, -verbose => 2 ) if $opt_man;
 pod2usage(1) if ( $opt_help || !$opt_c );
 
@@ -36,7 +38,7 @@ my $zfsWritten = zfsWrittenChk();
 
 #&getSnapshotList();
 
-if ( $opt_l || ( $zfsWritten != 1 ) ) {
+if ( $opt_l || ( !$opt_ignore_written && ( $zfsWritten != 1 ) ) ) {
     &getSnapshotList();
 }
 else {
@@ -271,7 +273,10 @@ B<rmexp-zfs-snap -help|-?|-man>
        -l               list backups and exit
        -n               dry run
        -s               supress report if no warnings
-       -help -?         brief help message
-       -man             full documentation
+
+       --ignore_written ignore written check
+
+       -help -?        brief help message
+       -man            full documentation
 
 =cut
