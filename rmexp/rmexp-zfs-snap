@@ -264,7 +264,7 @@ B<rmexp-zfs-snap [-a] [-d] [-n] [-s] -c> U<configfile>
 
 B<rmexp-zfs-snap -l [-s] -c> U<configfile>
 
-B<rmexp-zfs-snap -help|-?|-man>
+B<rmexp-zfs-snap --help|-?|--man>
 
  Options:
        -a               include all available backups in the report
@@ -276,7 +276,7 @@ B<rmexp-zfs-snap -help|-?|-man>
 
        --ignore_written ignore written check
 
-       -help -?        brief help message
-       -man            full documentation
+       --help -?        brief help message
+       --man            full documentation
 
 =cut

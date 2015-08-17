@@ -20,7 +20,7 @@ B<rmexp-smb|rmexp-zfs-snap [-a] [-d] [-n] [-s] -c> F<configfile>
 
 B<rmexp-smb|rmexp-zfs-snap -l [-s] -c> F<configfile>
 
-B<rmexp-smb|rmexp-zfs-snap -help|-?|-man>
+B<rmexp-smb|rmexp-zfs-snap --help|-?|--man>
 
  Options:
        -a               include all available backups in the report
@@ -29,8 +29,9 @@ B<rmexp-smb|rmexp-zfs-snap -help|-?|-man>
        -l               list backups and exit
        -n               dry run
        -s               suppress report if no warnings
-       -help -?         brief help message
-       -man             full documentation
+
+       --help -?         brief help message
+       --man             full documentation
 
 =head1 DESCRIPTION
 

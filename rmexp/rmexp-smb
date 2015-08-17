@@ -222,7 +222,7 @@ B<rmexp-smb [-a] [-d] [-n] [-s] -c> U<configfile>
 
 B<rmexp-smb -l [-s] -c> U<configfile>
 
-B<rmexp-smb -help|-?|-man>
+B<rmexp-smb --help|-?|--man>
 
  Options:
        -a               include all available backups in the report
@@ -231,7 +231,8 @@ B<rmexp-smb -help|-?|-man>
        -l               list backups and exit
        -n               dry run
        -s               supress report if no warnings
-       -help -?         brief help message
-       -man             full documentation
+
+       --help -?         brief help message
+       --man             full documentation
 
 =cut
