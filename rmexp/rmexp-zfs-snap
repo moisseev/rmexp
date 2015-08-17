@@ -36,12 +36,7 @@ pod2usage(1) if ( $opt_help || !$opt_c );
 
 my $zfsWritten = zfsWrittenChk();
 
-#&getSnapshotList();
-
-if ( $opt_l || ( !$opt_ignore_written && ( $zfsWritten != 1 ) ) ) {
-    &getSnapshotList();
-}
-else {
+unless ( $opt_l || ( !$opt_ignore_written && ( $zfsWritten != 1 ) ) ) {
     print "------ Debug ------", "\n", "Performed actions:", "\n" if $opt_d;
     &SnapshotCreate();
     &getSnapshotList();
@@ -49,6 +44,7 @@ else {
     print "-------------------\n\n" if $opt_d;
 }
 
+&getSnapshotList();
 &ShowReport();
 
 exit(0)
