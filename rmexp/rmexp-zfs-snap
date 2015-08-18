@@ -89,10 +89,9 @@ sub getSnapshotList {
         $zfsSnapshotWritten = $3;
         $zfsSnapshotUsed    = $4;
         if (
-            $1 =~ /^(.+)[_@]
-            (\d{4})-(\d{1,2})-(\d{1,2})_(\d{1,2})[-.](\d{1,2})[-.](\d{1,2})
-            (?:\.(\d))?
-            $Conf{fileNameSuffix}$/x
+            $1 =~ /^([^@]+)@
+            (\d{4})-(\d{1,2})-(\d{1,2})_(\d{1,2})\.(\d{1,2})\.(\d{1,2})
+            $/x
           )
         {
             # Time::Local : months start at 0, years have 1900 subtracted
