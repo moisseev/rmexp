@@ -158,7 +158,7 @@ sub ShowReport {
         unless (
             ( time - $lastStartTime ) / (
                 24 * 3600 * (
-                      $Conf{IncrPeriod} > 0
+                    ( $Conf{IncrPeriod} //= -1 ) > 0
                     ? $Conf{IncrPeriod}
                     : $Conf{FullPeriod}
                 )

@@ -173,12 +173,12 @@ description refer to "What to backup and when to do it" section of the BackupPC
 
 Minimum period in days between backups.
 
-=item $Conf{IncrPeriod} = 1;
+=item $Conf{IncrPeriod} = -1;
 
 Minimum period in days between incremental backups. Not affects backups aging.
 If the last backup is older than $Conf{IncrPeriod} then outdated backup warning
-will be added to statistics output. If $Conf{IncrPeriod} is set below or equal
-to 0, then $Conf{FullPeriod} will be used instead.
+will be added to statistics output. If $Conf{IncrPeriod} is undefined or set
+below or equal to 0, then $Conf{FullPeriod} will be used instead.
 
 =item $Conf{FillCycle} = 0;
 
