@@ -1,0 +1,23 @@
+# rmexp-zfs-snap configuration
+
+%Conf = (
+
+    zfsFS => 'tank1/vmail',
+
+    # If FillCycle set to zero then fill/unfilled will match full/incremental.
+    FillCycle => 0,
+
+    FullPeriod     => 1,
+    FullKeepCnt    => [ 7, 0, 7, 0, 0, 5 ],
+    FullKeepCntMin => 7,
+    FullAgeMax     => 180,
+
+    # Used for outdated backup warnings only.
+    # If IncrPeriod =< 0 or undefined then FullPeriod will be used.
+    #IncrPeriod => -1,
+
+    IncrKeepCnt    => 6,
+    IncrKeepCntMin => 1,
+    IncrAgeMax     => 1,
+
+);
