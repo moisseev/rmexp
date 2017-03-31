@@ -218,9 +218,9 @@ __END__
 
 =head1 SYNOPSIS
 
-B<rmexp-smb [-a] [-d] [-n] [-s] -c> U<configfile>
+B<rmexp-smb [-a] [-d] [-n] [-s] -c> F<configfile>
 
-B<rmexp-smb -l [-s] -c> U<configfile>
+B<rmexp-smb -l [-s] -c> F<configfile>
 
 B<rmexp-smb --help|-?|--man>
 

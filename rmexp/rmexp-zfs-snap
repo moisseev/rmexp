@@ -255,9 +255,9 @@ __END__
 
 =head1 SYNOPSIS
 
-B<rmexp-zfs-snap [-a] [-d] [-n] [-s] -c> U<configfile>
+B<rmexp-zfs-snap [-a] [-d] [-n] [-s] -c> F<configfile>
 
-B<rmexp-zfs-snap -l [-s] -c> U<configfile>
+B<rmexp-zfs-snap -l [-s] -c> F<configfile>
 
 B<rmexp-zfs-snap --help|-?|--man>
 
