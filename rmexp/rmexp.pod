@@ -6,6 +6,10 @@ rmexp - a Perl script set for automatic removal of expired backups
 
 =item *
 
+B<rmexp-local> removes backups stored as files on local file system
+
+=item *
+
 B<rmexp-smb> removes backups located at SMB shares
 
 =item *
@@ -16,11 +20,11 @@ B<rmexp-zfs-snap> removes backups stored as ZFS snapshots
 
 =head1 SYNOPSIS
 
-B<rmexp-smb|rmexp-zfs-snap [-a] [-d] [-n] [-s] -c> F<configfile>
+B<rmexp-local|rmexp-smb|rmexp-zfs-snap [-a] [-d] [-n] [-s] -c> F<configfile>
 
-B<rmexp-smb|rmexp-zfs-snap -l [-s] -c> F<configfile>
+B<rmexp-local|rmexp-smb|rmexp-zfs-snap -l [-s] -c> F<configfile>
 
-B<rmexp-smb|rmexp-zfs-snap --help|-?|--man>
+B<rmexp-local|rmexp-smb|rmexp-zfs-snap --help|-?|--man>
 
  Options:
        -a               include all available backups in the report
@@ -117,6 +121,23 @@ Example:
     qr/^(.+)_
       (\d{4})-(\d{1,2})-(\d{1,2})_(\d{1,2})-(\d{1,2})-(\d{1,2})
       (?:\.(\d))?/x,
+
+=back
+
+=head2 Local file system specific settings
+
+=over 4
+
+=item $Conf{backupDir}
+
+Directory where backups are stored.
+
+=item $Conf{maxDepth}
+
+Default is 255.
+
+Rmexp recursively searches all directories below $Conf{backupDir}.
+If directory depth exceeds this limit rmexp dies with fatal error.
 
 =back
 
@@ -255,9 +276,9 @@ Add entries to crontab.
 
 Crontab entries example:
 
-45  7  *  *  2-5  /somedir/rmexp.pl -s -c /somedir/rmexp.conf | mail -Es "rmexp@`hostname` `date '+\%Y-\%m-\%d \%H:\%M'` backup warning" mbox@domain.tld
+45  7  *  *  2-5  /somedir/rmexp-local -s -c /somedir/rmexp.conf | mail -Es "rmexp@`hostname` `date '+\%Y-\%m-\%d \%H:\%M'` backup warning" mbox@domain.tld
 
-45  7  *  *  6  /somedir/rmexp.pl -c /somedir/rmexp.conf | mail -s "rmexp@`hostname` `date '+\%Y-\%m-\%d \%H:\%M'` weekly report" mbox@domain.tld
+45  7  *  *  6  /somedir/rmexp-local -c /somedir/rmexp.conf | mail -s "rmexp@`hostname` `date '+\%Y-\%m-\%d \%H:\%M'` weekly report" mbox@domain.tld
 
 =head1 AUTHOR
 
@@ -269,7 +290,7 @@ Subroutines from BackupPC_dump by Craig Barratt <cbarratt@users.sourceforge.net>
 
 =head1 LICENSE and COPYRIGHT
 
- Copyright (C) 2011-2015 Alexander Moisseev
+ Copyright (C) 2011-2017 Alexander Moisseev
  All rights reserved.
 
 This program is free software; you can redistribute it and/or modify it

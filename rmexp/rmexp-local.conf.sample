@@ -1,0 +1,34 @@
+# rmexp-local configuration
+
+%Conf = (
+
+    # File name format example:
+    # some_prefix_2014-11-29_03-15-11.dt
+
+    # fileNameSuffix - regexp without anchors.
+    fileNameSuffix => '\.dt',
+    fileNameRE     => qr/^(.+)_
+      (\d{4})-(\d{1,2})-(\d{1,2})_(\d{1,2})-(\d{1,2})-(\d{1,2})
+      (?:\.(\d))?/x,
+
+    backupDir => '/8counts',
+
+    maxDepth => 16,
+
+    # If FillCycle set to zero then fill/unfilled will match full/incremental.
+    FillCycle => 0,
+
+    FullPeriod     => 1,
+    FullKeepCnt    => [ 7, 0, 7, 0, 2, 2, 1 ],
+    FullKeepCntMin => 5,
+    FullAgeMax     => 90,
+
+    # Used for outdated backup warnings only.
+    # If IncrPeriod =< 0 or undefined then FullPeriod will be used.
+    #IncrPeriod => -1,
+
+    IncrKeepCnt    => 6,
+    IncrKeepCntMin => 1,
+    IncrAgeMax     => 1,
+
+);
