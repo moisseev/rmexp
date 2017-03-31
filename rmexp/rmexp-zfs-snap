@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl -w
+#!/usr/bin/env perl
 
 #============================================================= -*-perl-*-
 # rmexp-zfs-snap
@@ -7,6 +7,8 @@
 #========================================================================
 
 use strict;
+use warnings;
+
 use Time::Local;
 use POSIX;
 use Getopt::Long;

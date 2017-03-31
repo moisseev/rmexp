@@ -1,10 +1,12 @@
-#!/usr/local/bin/perl -w
+#!/usr/bin/env perl
 
 #========================================================================
 # rmexp-local
 #========================================================================
 
 use strict;
+use warnings;
+
 use Time::Local;
 use POSIX;
 use Getopt::Long;
