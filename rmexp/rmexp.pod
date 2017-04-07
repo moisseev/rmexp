@@ -20,9 +20,9 @@ B<rmexp-zfs-snap> removes backups stored as ZFS snapshots
 
 =head1 SYNOPSIS
 
-B<rmexp-local|rmexp-smb|rmexp-zfs-snap [-a] [-d] [-n] [-s] -c> F<configfile>
+B<rmexp-local|rmexp-smb|rmexp-zfs-snap [-a] [-d] [-m] [-n] [-s] -c> F<configfile>
 
-B<rmexp-local|rmexp-smb|rmexp-zfs-snap -l [-s] -c> F<configfile>
+B<rmexp-local|rmexp-smb|rmexp-zfs-snap -l [-m] [-s] -c> F<configfile>
 
 B<rmexp-local|rmexp-smb|rmexp-zfs-snap --help|-?|--man>
 
@@ -31,6 +31,7 @@ B<rmexp-local|rmexp-smb|rmexp-zfs-snap --help|-?|--man>
        -d               print performed actions
        -c               configuration file name
        -l               list backups and exit
+       -m               mount/unmount file system (rmexp-local only)
        -n               dry run
        -s               suppress report if no warnings
 
@@ -118,6 +119,7 @@ It should have capturing parenthesises:
     $8  level
 
 Example:
+
     qr/^(.+)_
       (\d{4})-(\d{1,2})-(\d{1,2})_(\d{1,2})-(\d{1,2})-(\d{1,2})
       (?:\.(\d))?/x,
@@ -138,6 +140,19 @@ Default is 255.
 
 Rmexp recursively searches all directories below $Conf{backupDir}.
 If directory depth exceeds this limit rmexp dies with fatal error.
+
+=item $Conf{mountPoint}
+
+The mount point to mount a file system to if F<-m> option is enabled.
+
+Rmexp will try to mount a file system to the specified mount point prior doing
+anything and unmount it (if it was mounted by Rmexp) after operations that
+require access to the backup directory are completed.
+
+The mount point should be configured in /etc/fstab with F<noauto> option, for
+instance:
+
+ //backup@server/share  /smb/server/share  smbfs  rw,noauto,-I=192.168.1.1  0  0
 
 =back
 

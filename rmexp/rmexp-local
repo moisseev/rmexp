@@ -20,14 +20,20 @@ use lib::Rmexp;
 #};
 #use constant TTY_STDOUT => -t STDOUT;   # is STDOUT connected to tty?
 #use constant TTY_STDOUT => 0;
-our ( $opt_a, $opt_c, $opt_l, $opt_n, $opt_s, $opt_help, $opt_man );
+our ( $opt_a, $opt_c, $opt_l, $opt_m, $opt_n, $opt_s, $opt_help, $opt_man );
 
-GetOptions( "a", "d", "c=s", "l", "n", "s", "help|?", "man" ) || pod2usage(2);
+GetOptions( "a", "d", "c=s", "l", "m", "n", "s", "help|?", "man" )
+  || pod2usage(2);
 pod2usage( -input => "rmexp.pod", -exitval => 0, -verbose => 2 ) if $opt_man;
 #pod2usage( -input => "rmexp.pod", -exitval => 1 ) if ( $opt_help || !$opt_c );
 pod2usage(1) if ( $opt_help || !$opt_c );
 
 &ConfigDataRead($opt_c);
+
+my $mounted;
+if ($opt_m) {
+    $mounted = &mount();
+}
 
 my $maxDepth = $Conf{maxDepth} || 255;
 
@@ -39,9 +45,21 @@ unless ($opt_l) {
     print "-------------------", "\n\n" if $opt_d;
 }
 
+if ($mounted) {
+    system("umount $Conf{mountPoint}");
+}
+
 &ShowReport();
 
 exit(0);
+
+sub mount {
+    return 0
+      if ( grep { / on $Conf{mountPoint} \(/ } qx{/sbin/mount} );
+    system("mount $Conf{mountPoint}") == 0
+      or die "Can't mount $Conf{mountPoint}\n";
+    return 1;
+}
 
 sub getBackupList {
     my ( $uncDir, $currDepth ) = @_;
@@ -210,9 +228,9 @@ __END__
 
 =head1 SYNOPSIS
 
-B<rmexp-local [-a] [-d] [-n] [-s] -c> F<configfile>
+B<rmexp-local [-a] [-d] [-n] [-m] [-s] -c> F<configfile>
 
-B<rmexp-local -l [-s] -c> F<configfile>
+B<rmexp-local -l [-m] [-s] -c> F<configfile>
 
 B<rmexp-local --help|-?|--man>
 
@@ -221,6 +239,7 @@ B<rmexp-local --help|-?|--man>
        -d               print performed actions
        -c               configuration file name
        -l               list backups and exit
+       -m               mount/unmount file system (rmexp-local only)
        -n               dry run
        -s               supress report if no warnings
 

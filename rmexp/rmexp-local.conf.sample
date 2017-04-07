@@ -11,7 +11,10 @@
       (\d{4})-(\d{1,2})-(\d{1,2})_(\d{1,2})-(\d{1,2})-(\d{1,2})
       (?:\.(\d))?/x,
 
-    backupDir => '/8counts',
+    # Should be configured in /etc/fstab with 'noauto' option.
+    mountPoint => '/smb/server/share',
+
+    backupDir => '/smb/server/share/backupDir',
 
     maxDepth => 16,
 
