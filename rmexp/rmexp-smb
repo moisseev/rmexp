@@ -1,9 +1,7 @@
 #!/usr/bin/env perl
 
-#============================================================= -*-perl-*-
-# rmexp-smb
 #========================================================================
-# Version 0.0.7, released 2015-06-03
+# rmexp-smb
 #========================================================================
 
 use strict;
@@ -15,8 +13,11 @@ use Getopt::Long;
 use Pod::Usage;
 use Filesys::SmbClient;
 
-use lib::Lib;
-use lib::Rmexp;
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
+use Rmexp::Lib;
+use Rmexp::Rmexp;
 
 #use constant {
 #    LOG_FILE	=> '/tmp/1s8_expire.log',	# The name of the logfile

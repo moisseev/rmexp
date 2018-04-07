@@ -1,6 +1,6 @@
-#============================================================= -*-perl-*-
+#========================================================================
 #
-# lib::Rmexp package
+# Rmexp::Rmexp package
 #
 # DESCRIPTION
 #
@@ -27,17 +27,13 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #========================================================================
-#
-# Module version 0.0.1, released 27 Mar 2015.
-#
-#========================================================================
 
-package lib::Rmexp v0.0.1;
+package Rmexp::Rmexp;
 
 use strict;
 use warnings;
 
-use lib::Lib;
+use Rmexp::Lib;
 
 require Exporter;
 
@@ -56,7 +52,7 @@ my %opts = ( v => 1 );
 #
 # Get an instance of BackupPC::Lib and get some shortcuts.
 #
-die("lib::Lib->new failed\n") if ( !( my $bpc = lib::Lib->new ) );
+die("Rmexp::Lib->new failed\n") if ( !( my $bpc = Rmexp::Lib->new ) );
 
 sub ConfigDataRead {
     unless ( my $ret = do "@_" ) {

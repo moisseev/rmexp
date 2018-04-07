@@ -12,8 +12,11 @@ use POSIX;
 use Getopt::Long;
 use Pod::Usage;
 
-use lib::Lib;
-use lib::Rmexp;
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
+use Rmexp::Lib;
+use Rmexp::Rmexp;
 
 #use constant {
 #    LOG_FILE	=> '/tmp/1s8_expire.log',	# The name of the logfile

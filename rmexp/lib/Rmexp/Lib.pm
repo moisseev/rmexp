@@ -1,10 +1,10 @@
-#============================================================= -*-perl-*-
+#========================================================================
 #
-# lib::Lib package
+# Rmexp::Lib package
 #
 # DESCRIPTION
 #
-#   This library defines a lib::Lib class and a variety of utility
+#   This library defines a Rmexp::Lib class and a variety of utility
 #   functions used by BackupExpire and BackupFullExpire subs.
 #
 # AUTHOR
@@ -27,12 +27,8 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #========================================================================
-#
-# Module version 0.0.1, released 31 Mar 2015.
-#
-#========================================================================
 
-package lib::Lib v0.0.1;
+package Rmexp::Lib;
 
 use strict;
 
