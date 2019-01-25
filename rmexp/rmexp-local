@@ -88,10 +88,14 @@ sub getBackupList {
             my $fileSize = -s $uncFile;
 
             # Time::Local : months start at 0, years have 1900 subtracted
-            my $startTime = timelocal( $7, $6, $5, $4, $3 - 1, $2 - 1900 );
+            my $startTime = eval { timelocal( $7, $6, $5, $4, $3 - 1, $2 - 1900 ) };
+            unless ($startTime) {
+                warn "*WARNING* incorrect timestamp in file name: $uncFile\n  -> $@\n";
+                next;
+            }
 
             if ( $BackupList{$1}{$startTime} ) {
-                die <<EOF
+                die <<EOF;
 *FATAL* Duplicate backups:
 $BackupList{$1}{$startTime}{dir}/$BackupList{$1}{$startTime}{fileName}
 $uncFile
