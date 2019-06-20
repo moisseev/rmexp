@@ -295,6 +295,16 @@ Crontab entries example:
 
 45  7  *  *  6  /somedir/rmexp-local -c /somedir/rmexp.conf | mail -s "rmexp@`hostname` `date '+\%Y-\%m-\%d \%H:\%M'` weekly report" mbox@domain.tld
 
+In case of a fatal error rmexp may not write any output to STDOUT. As a result, cron will send a mail message with an
+empty body. It is possible to copy STDERR to STDOUT and keep STDERR (as we still need to write errors in the cron log)
+using the following construct:
+
+ (( my_command 3>&1 1>&2 2>&3 3>- | tee /dev/stderr ) 3>&1 1>&2 2>&3 3>- ) | mail ...
+
+Here is a full example:
+
+45  7  *  *  *  (( /somedir/rmexp-local -m -c /somedir/rmexp.conf 3>&1 1>&2 2>&3 3>- | tee /dev/stderr ) 3>&1 1>&2 2>&3 3>- ) | mail -s "rmexp@`hostname` `date '+\%Y-\%m-\%d \%H:\%M'` daily report" mbox@domain.tld
+
 =head1 AUTHOR
 
 S<Alexander Moisseev E<lt>moiseev@mezonplus.ruE<gt>>
