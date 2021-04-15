@@ -35,6 +35,8 @@ B<rmexp-local|rmexp-smb|rmexp-zfs-snap --help|-?|--man>
        -n               dry run
        -s               suppress report if no warnings
 
+       --ignore_written ignore written check (rmexp-zfs-snap only)
+
        --help -?         brief help message
        --man             full documentation
 
