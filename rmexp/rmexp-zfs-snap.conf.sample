@@ -3,6 +3,7 @@
 %Conf = (
 
     zfsFS => 'tank1/vmail',
+    #ignoreSnapshotPrefix => 'zrepl_',
 
     # If FillCycle set to zero then fill/unfilled will match full/incremental.
     FillCycle => 0,

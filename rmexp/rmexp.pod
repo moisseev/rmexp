@@ -166,6 +166,10 @@ instance:
 
 ZFS file system that should be processed.
 
+=item $Conf{ignoreSnapshotPrefix}
+
+Ignore snapshots with a given name prefix.
+
 =back
 
 =head2 SMB specific settings

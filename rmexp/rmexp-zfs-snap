@@ -37,6 +37,7 @@ pod2usage(1) if ( $opt_help || !$opt_c );
 -x "/sbin/zfs"
   or die '/sbin/zfs is not a valid executable.';
 
+my $snapshotsIgnored = 0;
 my $zfsWritten = zfsWrittenChk();
 
 unless ( $opt_l || ( !$opt_ignore_written && ( $zfsWritten != 1 ) ) ) {
@@ -55,6 +56,8 @@ exit(0)
 
 print "\n";
 system("/sbin/zfs get -o name,property,value used,logicalused $Conf{zfsFS}");
+
+print "\n", "* $snapshotsIgnored snapshots has been ignored.", "\n" if $snapshotsIgnored;
 
 exit(0);
 
@@ -91,8 +94,14 @@ sub getSnapshotList {
         $fileSize           = $2;
         $zfsSnapshotWritten = $3;
         $zfsSnapshotUsed    = $4;
+
+        if (exists $Conf{ignoreSnapshotPrefix} && $fileName =~ /^[^@]+[@]$Conf{ignoreSnapshotPrefix}/) {
+            $snapshotsIgnored++;
+            next;
+        }
+
         if (
-            $1 =~ /^([^@]+)@
+            $fileName =~ /^([^@]+)@
             (\d{4})-(\d{1,2})-(\d{1,2})_(\d{1,2})\.(\d{1,2})\.(\d{1,2})
             $/x
           )
