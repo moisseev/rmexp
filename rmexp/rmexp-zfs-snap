@@ -242,7 +242,8 @@ sub zfsWrittenChk {
       if ( `/sbin/zfs get -Hp -o value written $Conf{zfsFS}` >= 10485760 );
 
     print "*WARNING* Less than 10M were written to $Conf{zfsFS}\
-since previous snapshot.", "\n\n";
+since previous snapshot.", "\n\n"
+      unless ( $opt_ignore_written && $opt_s );
     return 0;
 }
 
